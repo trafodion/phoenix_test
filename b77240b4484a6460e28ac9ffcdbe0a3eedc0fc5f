@@ -1,0 +1,9 @@
+Verified+2: Trafodion Jenkins
+Code-Review+1: Weishiun Tsai <wei-shiun.tsai@hp.com>
+Code-Review+2: Aruna Sadashiva <aruna.sadashiva@hp.com>
+Workflow+1: Aruna Sadashiva <aruna.sadashiva@hp.com>
+Submitted-by: Trafodion Jenkins
+Submitted-at: Wed, 12 Nov 2014 01:54:51 +0000
+Reviewed-on: https://review.trafodion.org/670
+Project: trafodion/phoenix_test
+Branch: refs/heads/master

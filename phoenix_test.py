@@ -184,14 +184,7 @@ def get_substr_after_string(s1, s2):
 # on distribution
 #----------------------------------------------------------------------------
 def get_hadoop_component_version(distro, component):
-    # Hortonworks 2.x Maven URL dictionary
-    hw_mvn_url_base = "http://repo.hortonworks.com/content/repositories/releases/"
-    hw_mvn_url_dict = {
-        'hadoop': (hw_mvn_url_base + "org/apache/hadoop/hadoop-common/maven-metadata.xml"),
-        'hbase': (hw_mvn_url_base + "org/apache/hbase/hbase-common/maven-metadata.xml"),
-        'hive': (hw_mvn_url_base + "org/apache/hive/hive-exec/maven-metadata.xml"),
-        'zookeeper': (hw_mvn_url_base + "org/apache/zookeeper/zookeeper/maven-metadata.xml")
-    }
+    rpm_ver = ''
     if 'HBASE_CNF_DIR' in os.environ:
         local_file_dict = {
             'hadoop_regex': re.compile("^hadoop-common-(\d.*).jar"),
@@ -207,12 +200,12 @@ def get_hadoop_component_version(distro, component):
         # find version number of component using rpm command
     if 'HBASE_CNF_DIR' in os.environ and "local_hadoop" in os.environ['HBASE_CNF_DIR']:
         rpm_ver = 'LOCAL'
-    else:
+    elif distro == 'CDH':
         rpm_ver = subprocess.Popen(["rpm", "-q", "--qf", '%{VERSION}', component],
                                    stdout=subprocess.PIPE).communicate()[0]
 
     # if distro is Cloudera (CDH) then parse string from rpm_ver
-    # if distro is HortonWorks (HW) then fetch Maven XML files and
+    # if distro is HortonWorks (HW) then interrogate commands using script
     # parse those for the actual version of the component
 
     if rpm_ver == 'LOCAL':
@@ -221,12 +214,7 @@ def get_hadoop_component_version(distro, component):
     elif distro.startswith("CDH"):
         return(rpm_ver[:rpm_ver.rfind("+")].replace("+", "-"))
     elif distro.startswith("HDP"):
-        proxy = urllib2.ProxyHandler()
-        opener = urllib2.build_opener(proxy)
-        mvn_xml = opener.open(hw_mvn_url_dict[component]).read()
-        mvn_xml_content = ET.fromstring(mvn_xml)
-        return([version.text for version in mvn_xml_content.findall(".//version")
-               if version.text.startswith(rpm_ver)][0])
+        return(shell_call(gvars.my_ROOT + '/hadoop_ver.sh ' + component))
 
 
 #----------------------------------------------------------------------------
@@ -234,8 +222,10 @@ def get_hadoop_component_version(distro, component):
 #----------------------------------------------------------------------------
 def generate_pom_xml(targettype, jdbc_groupid, jdbc_artid, jdbc_path, hadoop_distro):
     # dictionary for Hadoop Distribution dependent dependencies
-    hadoop_dict = {
-        'CDH51': {'MY_HADOOP_DISTRO': 'cloudera',
+    # we'll only access one distro, so no need to create full dict
+    if hadoop_distro == 'CDH':
+        hadoop_dict = {
+            'CDH': {'MY_HADOOP_DISTRO': 'cloudera',
                   'MY_HADOOP_VERSION': get_hadoop_component_version(hadoop_distro, "hadoop"),
                   'MY_MVN_URL': 'http://repository.cloudera.com/artifactory/cloudera-repos',
                   'MY_HBASE_VERSION': get_hadoop_component_version(hadoop_distro, "hbase"),
@@ -254,7 +244,10 @@ def generate_pom_xml(targettype, jdbc_groupid, jdbc_artid, jdbc_path, hadoop_dis
                                ('org.apache.zookeeper', 'zookeeper', '${zookeeper_version}', 'EDEP')
                                ]
                   },
-        'HDP21': {'MY_HADOOP_DISTRO': 'HDPReleases',
+        }
+    elif hadoop_distro == 'HDP':
+        hadoop_dict = {
+            'HDP': {'MY_HADOOP_DISTRO': 'HDPReleases',
                   'MY_HADOOP_VERSION': get_hadoop_component_version(hadoop_distro, "hadoop"),
                   'MY_MVN_URL': 'http://repo.hortonworks.com/content/repositories/releases/',
                   'MY_HBASE_VERSION': get_hadoop_component_version(hadoop_distro, "hbase"),
@@ -273,7 +266,7 @@ def generate_pom_xml(targettype, jdbc_groupid, jdbc_artid, jdbc_path, hadoop_dis
                                ('org.apache.zookeeper', 'zookeeper', '${zookeeper_version}', 'EDEP')
                                ]
                   }
-    }
+        }
 
     # read template file into multiline string
     with open(os.path.join(gvars.my_ROOT, 'pom.xml.template'), 'r') as fd1:
@@ -438,9 +431,9 @@ def prog_parse_args():
                              dest='jdbctype', default='T4',
                              help='jdbctype, defaulted to T4'),
         optparse.make_option('', '--hadoop', action='store', type='string',
-                             dest='hadoop', default='CDH51',
-                             help='Hadoop Distro, possible values are CDH51 (Cloudera 5.1.x), ' +
-                                  'HDP21 (Hortonworks 2.1.x). Defaulted to CDH51.'),
+                             dest='hadoop', default='CDH',
+                             help='Hadoop Distro, possible values are CDH (Cloudera), ' +
+                                  'HDP (Hortonworks). Defaulted to CDH.'),
         optparse.make_option('', '--export1', action='store', type='string',
                              dest='exportstr1', default='NONE',
                              help='any export string, defaulted to NONE'),
@@ -483,9 +476,10 @@ def prog_parse_args():
         parser.error('Invalid --targettype.  Only SQ aor TR is supported: ' +
                      options.targettype)
 
-    if options.hadoop != 'CDH51' and options.hadoop != 'HDP21':
-        parser.error('Invalid --hadoop.  Only CDH51 (Cloudera 5.1.x) or HDP21 ' +
-                     '(Hortonworks 2.1.x) + is supported: ' + options.targettype)
+    distro = options.hadoop[0:3]  # take first three characters to be back-compatible with CDH51, etc
+    if distro != 'CDH' and distro != 'HDP':
+        parser.error('Invalid --hadoop.  Only CDH (Cloudera) or HDP ' +
+                     '(Hortonworks) + is supported: ' + options.hadoop)
 
     if options.jdbctype != 'T2' and options.jdbctype != 'T4':
         parser.error('Invalid --jdbctype.  Only T2 or T4 is supported: ' +
@@ -538,7 +532,7 @@ def prog_parse_args():
     ArgList._prop_file = os.path.abspath(options.propfile)
     ArgList._target_type = options.targettype
     ArgList._jdbc_type = options.jdbctype
-    ArgList._hadoop_distro = options.hadoop
+    ArgList._hadoop_distro = distro
     ArgList._export_str1 = options.exportstr1
     ArgList._export_str2 = options.exportstr2
     ArgList._export_str3 = options.exportstr3

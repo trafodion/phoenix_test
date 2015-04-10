@@ -197,7 +197,7 @@
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
-      <version>2.3</version>
+      <version>2.6</version>
       <scope>test</scope>
     </dependency>
 
@@ -222,6 +222,7 @@
             <additionalClasspathElement>${env.HADOOP_CNF_DIR}</additionalClasspathElement>
             <additionalClasspathElement>${env.HBASE_CNF_DIR}</additionalClasspathElement>
             <additionalClasspathElement>${env.HIVE_CNF_DIR}</additionalClasspathElement>
+            <additionalClasspathElement>${env.HBASE_TRXDIR}</additionalClasspathElement>
           </additionalClasspathElements>
           <argLine>-Xcheck:jni</argLine>
           <!-- <useManifestOnlyJar>false</useManifestOnlyJar> -->
@@ -233,6 +234,7 @@
             <HADOOP_CNF_DIR>${env.HADOOP_CNF_DIR}</HADOOP_CNF_DIR>
             <HBASE_CNF_DIR>${env.HBASE_CNF_DIR}</HBASE_CNF_DIR>
             <HIVE_CNF_DIR>${env.HIVE_CNF_DIR}</HIVE_CNF_DIR>
+            <HBASE_TRXDIR>${env.HBASE_TRXDIR}</HBASE_TRXDIR>
             <SQ_MBTYPE>${env.SQ_MBTYPE}</SQ_MBTYPE>
             <MY_SQROOT>${env.MY_SQROOT}</MY_SQROOT>
             <MPI_TMPDIR>${env.MPI_TMPDIR}</MPI_TMPDIR>

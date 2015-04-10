@@ -32,6 +32,8 @@ import subprocess
 import sys
 import urllib2
 
+from distutils import spawn
+
 
 #----------------------------------------------------------------------------
 # Dictionary for the following pre-defined test groups :
@@ -183,7 +185,7 @@ def get_substr_after_string(s1, s2):
 # Get Hadoop component version (hadoop, hbase, hive, zookeeper) based
 # on distribution
 #----------------------------------------------------------------------------
-def get_hadoop_component_version(distro, component):
+def get_hadoop_component_ver(distro, component):
     rpm_ver = ''
     if 'HBASE_CNF_DIR' in os.environ:
         local_file_dict = {
@@ -226,47 +228,55 @@ def generate_pom_xml(targettype, jdbc_groupid, jdbc_artid, jdbc_path, hadoop_dis
     if hadoop_distro == 'CDH':
         hadoop_dict = {
             'CDH': {'MY_HADOOP_DISTRO': 'cloudera',
-                  'MY_HADOOP_VERSION': get_hadoop_component_version(hadoop_distro, "hadoop"),
-                  'MY_MVN_URL': 'http://repository.cloudera.com/artifactory/cloudera-repos',
-                  'MY_HBASE_VERSION': get_hadoop_component_version(hadoop_distro, "hbase"),
-                  'MY_HIVE_VERSION': get_hadoop_component_version(hadoop_distro, "hive"),
-                  'MY_ZOOKEEPER_VERSION': get_hadoop_component_version(hadoop_distro, "zookeeper"),
-                                                                 # cdh sub-string added at 1.1
-                  'TRAF_HBASE_TRX_REGEX': re.compile("^hbase-trx-(cdh[\d_]*-)?[\d\.]{3,}jar"),
-                  'TRAF_HBASE_ACS_REGEX': re.compile("^trafodion-HBaseAccess-[\d\.]{3,}jar"),
-                  'MVN_DEPS': [('org.apache.hbase', 'hbase-client', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hbase', 'hbase-common', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hbase', 'hbase-server', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hbase', 'hbase-protocol', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hadoop', 'hadoop-hdfs', '${hadoop_version}', 'EDEP'),
-                               ('org.apache.hadoop', 'hadoop-auth', '${hadoop_version}', 'IDEP'),
-                               ('org.apache.hadoop', 'hadoop-common', '${hadoop_version}', 'EDEP'),
-                               ('org.apache.hive', 'hive-exec', '${hive_version}', 'EDEP'),
-                               ('org.apache.zookeeper', 'zookeeper', '${zookeeper_version}', 'EDEP')
-                               ]
-                  },
+                    'MY_HADOOP_VERSION': get_hadoop_component_ver(hadoop_distro, "hadoop"),
+                    'MY_MVN_URL': 'http://repository.cloudera.com/artifactory/cloudera-repos',
+                    'MY_HBASE_VERSION': get_hadoop_component_ver(hadoop_distro, "hbase"),
+                    'MY_HIVE_VERSION': get_hadoop_component_ver(hadoop_distro, "hive"),
+                    'MY_ZOOKEEPER_VERSION': get_hadoop_component_ver(hadoop_distro, "zookeeper"),
+                    # cdh sub-string added at 1.1
+                    'TRAF_HBASE_TRX_REGEX': re.compile("^hbase-trx-(cdh[\d_]*-)?[\d\.]{3,}jar"),
+                    'TRAF_HBASE_ACS_REGEX': re.compile("^trafodion-HBaseAccess-[\d\.]{3,}jar"),
+                    'MVN_DEPS': [('org.apache.hbase', 'hbase-client', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hbase', 'hbase-common', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hbase', 'hbase-server', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hbase', 'hbase-protocol', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hadoop', 'hadoop-auth', '${hadoop_version}', 'IDEP'),
+                                 ('org.apache.hadoop', 'hadoop-common', '${hadoop_version}',
+                                  'IDEP'),
+                                 ('org.apache.hadoop', 'hadoop-hdfs', '${hadoop_version}', 'IDEP'),
+                                 ('org.apache.hadoop', 'hadoop-mapreduce-client-core',
+                                  '${hadoop_version}', 'IDEP'),
+                                 ('org.apache.hive', 'hive-exec', '${hive_version}', 'EDEP'),
+                                 ('org.apache.zookeeper', 'zookeeper', '${zookeeper_version}',
+                                  'EDEP')
+                                 ]
+                    },
         }
     elif hadoop_distro == 'HDP':
         hadoop_dict = {
             'HDP': {'MY_HADOOP_DISTRO': 'HDPReleases',
-                  'MY_HADOOP_VERSION': get_hadoop_component_version(hadoop_distro, "hadoop"),
-                  'MY_MVN_URL': 'http://repo.hortonworks.com/content/repositories/releases/',
-                  'MY_HBASE_VERSION': get_hadoop_component_version(hadoop_distro, "hbase"),
-                  'MY_HIVE_VERSION': get_hadoop_component_version(hadoop_distro, "hive"),
-                  'MY_ZOOKEEPER_VERSION': get_hadoop_component_version(hadoop_distro, "zookeeper"),
-                  'TRAF_HBASE_TRX_REGEX': re.compile("^hbase-trx-hdp[\d_]*-[\d\.]{3,}jar"),
-                  'TRAF_HBASE_ACS_REGEX': re.compile("^trafodion-HBaseAccess-[\d\.]{3,}jar"),
-                  'MVN_DEPS': [('org.apache.hbase', 'hbase-client', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hbase', 'hbase-common', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hbase', 'hbase-server', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hbase', 'hbase-protocol', '${hbase_version}', 'EDEP'),
-                               ('org.apache.hadoop', 'hadoop-hdfs', '${hadoop_version}', 'EDEP'),
-                               ('org.apache.hadoop', 'hadoop-auth', '${hadoop_version}', 'IDEP'),
-                               ('org.apache.hadoop', 'hadoop-common', '${hadoop_version}', 'EDEP'),
-                               ('org.apache.hive', 'hive-exec', '${hive_version}', 'EDEP'),
-                               ('org.apache.zookeeper', 'zookeeper', '${zookeeper_version}', 'EDEP')
-                               ]
-                  }
+                    'MY_HADOOP_VERSION': get_hadoop_component_ver(hadoop_distro, "hadoop"),
+                    'MY_MVN_URL': 'http://repo.hortonworks.com/content/repositories/releases/',
+                    'MY_HBASE_VERSION': get_hadoop_component_ver(hadoop_distro, "hbase"),
+                    'MY_HIVE_VERSION': get_hadoop_component_ver(hadoop_distro, "hive"),
+                    'MY_ZOOKEEPER_VERSION': get_hadoop_component_ver(hadoop_distro, "zookeeper"),
+                    'TRAF_HBASE_TRX_REGEX': re.compile("^hbase-trx-hdp[\d_]*-[\d\.]{3,}jar"),
+                    'TRAF_HBASE_ACS_REGEX': re.compile("^trafodion-HBaseAccess-[\d\.]{3,}jar"),
+                    'MVN_DEPS': [('org.apache.hbase', 'hbase-client', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hbase', 'hbase-common', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hbase', 'hbase-server', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hbase', 'hbase-protocol', '${hbase_version}', 'EDEP'),
+                                 ('org.apache.hadoop', 'hadoop-auth', '${hadoop_version}', 'IDEP'),
+                                 ('org.apache.hadoop', 'hadoop-common', '${hadoop_version}',
+                                  'IDEP'),
+                                 ('org.apache.hadoop', 'hadoop-hdfs', '${hadoop_version}', 'IDEP'),
+                                 ('org.apache.hadoop', 'hadoop-mapreduce-client-core',
+                                  '${hadoop_version}', 'IDEP'),
+                                 ('org.apache.hive', 'hive-exec', '${hive_version}', 'EDEP'),
+                                 ('org.apache.zookeeper', 'zookeeper', '${zookeeper_version}',
+                                  'EDEP')
+                                 ]
+                    }
         }
 
     # read template file into multiline string
@@ -477,7 +487,8 @@ def prog_parse_args():
         parser.error('Invalid --targettype.  Only SQ aor TR is supported: ' +
                      options.targettype)
 
-    distro = options.hadoop[0:3]  # take first three characters to be back-compatible with CDH51, etc
+    # take first three characters to be backwards compatible with CDH51, etc
+    distro = options.hadoop[0:3]
     if distro != 'CDH' and distro != 'HDP':
         parser.error('Invalid --hadoop.  Only CDH (Cloudera) or HDP ' +
                      '(Hortonworks) + is supported: ' + options.hadoop)
@@ -605,9 +616,34 @@ def prog_parse_args():
 #----------------------------------------------------------------------------
 prog_parse_args()
 
+# check to make sure executables mvn and javac are in the PATH
+if spawn.find_executable("mvn") is None:
+    print "ERROR: Could not find the Maven executable \'mvn\' in the PATH! \n"
+    sys.exit(2)
+
+if spawn.find_executable("javac") is None:
+    print "ERROR: Could not find the Java Compiler executable \'javac\' in the PATH! \n"
+    sys.exit(2)
+
 # clean the target
 output = shell_call(gvars.my_EXPORT_CMD + ';mvn clean')
 stdout_write(output + '\n')
+
+# find out location of Maven Downloads
+maven_repo = shell_call(gvars.my_EXPORT_CMD + '; mvn help:evaluate ' +
+                        '-Dexpression=settings.localRepository | grep -B 2 "BUILD SUCCESS" ' +
+                        '| head -1').strip(' \t\n\t')
+print "\nMaven Repo Location is : " + maven_repo + ".\n"
+
+# have Maven generate CLASSPATH it will use for testing
+# additionally the following env variables need to be appended to the CLASSPATH since they
+# are added to the CLASSPATH by the Surefire Plugin after Maven generates the CLASSPATH
+#  HADOOP_CNF_DIR, HBASE_CNF_DIR, HIVE_CNF_DIR, HBASE_TRXDIR
+subs_string = ':${HADOOP_CNF_DIR}:${HBASE_CNF_DIR}:${HIVE_CNF_DIR}:${HBASE_TRXDIR}\\n'
+output = shell_call(gvars.my_EXPORT_CMD + '; rm phoenix_classpath.txt 2>/dev/null; ' +
+                    'mvn dependency:build-classpath -Dmdep.outputFile=phoenix_classpath.txt; ' +
+                    'sed -i -e "s|$|' + subs_string + '|g" phoenix_classpath.txt; ' +
+                    'echo "Phoenix Test Classpath :"; cat phoenix_classpath.txt')
 
 # do the whole build, including running tests
 output = shell_call(gvars.my_EXPORT_CMD + ';mvn test -Dtest=' + ArgList._tests)

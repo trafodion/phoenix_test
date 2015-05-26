@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2013 Hewlett-Packard Development Company, L.P.
+// (C) Copyright 2013-2015 Hewlett-Packard Development Company, L.P.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -152,11 +152,15 @@ public class TopNTest extends BaseTest {
             if (!autoCommit) {
                 conn.commit();
             }
-        } finally {
+        }
+        finally{}
+
+        /* 5/19/15 - NOT NEEDED, WE CAN SELECT USING THE SAME CONNECTION
+        finally {
             conn.close();
         }
-
         conn = getConnection();
+        */
         if (tgtPH()) query = "SELECT entity_id FROM aTable ORDER BY b_string, x_decimal nulls last, 8-a_integer LIMIT 5";
         else if (tgtTR()) query = "SELECT entity_id FROM aTable ORDER BY b_string, x_decimal, a_integer desc LIMIT 5";
         else if (tgtSQ()) query = "SELECT [first 5] entity_id FROM aTable ORDER BY b_string, x_decimal, a_integer desc";

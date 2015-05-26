@@ -1,6 +1,6 @@
 // @@@ START COPYRIGHT @@@
 //
-// (C) Copyright 2013 Hewlett-Packard Development Company, L.P.
+// (C) Copyright 2013-2015 Hewlett-Packard Development Company, L.P.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ public class ServerExceptionTest extends BaseTest {
             if (tgtPH()) assertTrue(e.getMessage().contains("ERROR 212 (22012): Arithmatic error on server. / by zero"));
             else if (tgtSQ()||tgtTR()) assertTrue(e.getMessage().contains("*** ERROR[8419] An arithmetic expression attempted a division by zero."));
         } finally {
-            conn.close();
+            //conn.close();
         }
     }
 

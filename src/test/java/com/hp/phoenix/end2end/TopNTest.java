@@ -152,11 +152,15 @@ public class TopNTest extends BaseTest {
             if (!autoCommit) {
                 conn.commit();
             }
-        } finally {
+        }
+        finally{}
+        
+        /* 5/19/15 - NOT NEEDED
+        finally {
             conn.close();
         }
-
         conn = getConnection();
+        */
         if (tgtPH()) query = "SELECT entity_id FROM aTable ORDER BY b_string, x_decimal nulls last, 8-a_integer LIMIT 5";
         else if (tgtTR()) query = "SELECT entity_id FROM aTable ORDER BY b_string, x_decimal, a_integer desc LIMIT 5";
         else if (tgtSQ()) query = "SELECT [first 5] entity_id FROM aTable ORDER BY b_string, x_decimal, a_integer desc";

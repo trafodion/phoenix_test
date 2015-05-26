@@ -102,7 +102,7 @@ public class ServerExceptionTest extends BaseTest {
             if (tgtPH()) assertTrue(e.getMessage().contains("ERROR 212 (22012): Arithmatic error on server. / by zero"));
             else if (tgtSQ()||tgtTR()) assertTrue(e.getMessage().contains("*** ERROR[8419] An arithmetic expression attempted a division by zero."));
         } finally {
-            conn.close();
+            //conn.close();
         }
     }
 

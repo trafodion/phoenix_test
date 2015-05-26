@@ -76,6 +76,7 @@ public abstract class BaseTest {
     private static String my_schema = null;
 
     protected static Connection conn = null;
+    protected static boolean autocommit = true;
     /* List all of the object names being used in this entire class.
      * The objects are dropped with errors ignored, so it is OK if the
      * object does not exist for a particular test.
@@ -90,6 +91,10 @@ public abstract class BaseTest {
         if (tgtSQ())
            createCatalogIfNotExist();
         createSchemaIfNotExist();
+        if (conn == null)
+            conn = getConnection();
+        if (conn != null)
+            autocommit = conn.getAutoCommit();    
 
         String name = Thread.currentThread().getStackTrace()[2].toString();
         name = name.substring(0, name.indexOf(".doTestSuiteSetup")); 
@@ -98,19 +103,28 @@ public abstract class BaseTest {
 
     @AfterClass
     public static void doBaseTestSuiteCleanup() throws Exception {
+        if (conn != null)
+    	    conn.close();
+        conn = null;
         dropSchemaIfExist();
         if (tgtSQ())
            dropCatalogIfExist();
+        if (baseConn != null)
+    	    baseConn.close();
+        baseConn = null;
     }
 
     @Before
     public void doBaseTestSetup() throws Exception {
-        conn = getConnection();
+        if (conn == null)
+            conn = getConnection();
     }
 
     @After
     public void doBaseTestCleanup() throws Exception {
-        conn.close();
+        if (conn != null) {
+    	    conn.setAutoCommit(autocommit);
+        }
         dropTestObjects();
     }
 
@@ -848,6 +862,10 @@ public abstract class BaseTest {
             }
 
             // System.out.println("connecting to " + url);
+            props.setProperty("maxPoolSize", "0");
+            props.setProperty("minPoolSize", "0");
+            props.setProperty("initialPoolSize", "0");
+            props.setProperty("maxStatements", "0");
             conn = DriverManager.getConnection(url, props);
         } catch (Exception e) {
             conn = null;
@@ -860,7 +878,7 @@ public abstract class BaseTest {
     }
 
     protected void createTestTable(String tableName) {
-        assertNotNull(conn);
+        assertNotNull(baseConn);
         String ddl = null;
         if (tgtPH()) ddl = tableDDLMap_PH.get(tableName);
         else if (tgtTR()) ddl = tableDDLMap_TR.get(tableName);
@@ -870,7 +888,7 @@ public abstract class BaseTest {
         ddl = buf.toString();
 
         try {
-            conn.createStatement().execute(ddl);
+            baseConn.createStatement().execute(ddl);
         } catch (Exception e) { 
             System.out.println(e.getMessage());
             fail("Failed to create table");
@@ -878,12 +896,12 @@ public abstract class BaseTest {
     }
 
     protected void initSumDoubleValues() throws Exception {
-        assertNotNull(conn);
+        assertNotNull(baseConn);
         createTestTable("SumDoubleTest");
         try {
             // Insert all rows at ts
             PreparedStatement stmt = null;
-            if (tgtPH()||tgtTR()) stmt = conn.prepareStatement(
+            if (tgtPH()||tgtTR()) stmt = baseConn.prepareStatement(
                     "upsert into " +
                     "SumDoubleTest(" +
                     "    id, " +
@@ -892,7 +910,7 @@ public abstract class BaseTest {
                     "    ud, " +
                     "    uf) " +
                     "VALUES (?, ?, ?, ?, ?)");
-            else if (tgtSQ()) stmt = conn.prepareStatement(
+            else if (tgtSQ()) stmt = baseConn.prepareStatement(
                     "insert into " +
                     "SumDoubleTest(" +
                     "    id, " +
@@ -944,12 +962,12 @@ public abstract class BaseTest {
     }
  
     protected void initATableValues(Date date) throws Exception {
-        assertNotNull(conn);
+        assertNotNull(baseConn);
         createTestTable(ATABLE_NAME);
         try {
             // Insert all rows at ts
             PreparedStatement stmt = null;
-            if (tgtPH()||tgtTR()) stmt = conn.prepareStatement(
+            if (tgtPH()||tgtTR()) stmt = baseConn.prepareStatement(
                     "upsert into " +
                     "ATABLE(" +
                     "    ORGANIZATION_ID, " +
@@ -969,7 +987,7 @@ public abstract class BaseTest {
                     "    A_UNSIGNED_FLOAT," +
                     "    A_UNSIGNED_DOUBLE)" +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            else if (tgtSQ()) stmt = conn.prepareStatement(
+            else if (tgtSQ()) stmt = baseConn.prepareStatement(
                     "insert into " +
                     "ATABLE(" +
                     "    ORGANIZATION_ID, " +

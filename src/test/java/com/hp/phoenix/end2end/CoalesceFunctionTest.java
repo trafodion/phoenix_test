@@ -86,7 +86,7 @@ public class CoalesceFunctionTest extends BaseTest {
         assertEquals(12, rs.getInt(2));
         
         assertFalse(rs.next());
-        conn.close();
+        //conn.close();
     }
 
 }
